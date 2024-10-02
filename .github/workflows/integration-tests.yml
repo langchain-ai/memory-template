@@ -31,7 +31,7 @@ jobs:
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv
-          uv pip install -r pyproject.toml
+          uv pip install -r pyproject.toml --extra dev
           uv pip install -U pytest-asyncio vcrpy
       - name: Run integration tests
         env:

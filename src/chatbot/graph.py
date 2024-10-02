@@ -1,84 +1,27 @@
 """Example chatbot that incorporates user memories."""
 
-import os
 import uuid
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import List, Optional
 
-from langchain.chat_models import init_chat_model
-from langchain_core.messages import AnyMessage
 from langchain_core.runnables import RunnableConfig
-from langgraph.graph import StateGraph, add_messages
+from langgraph.graph import StateGraph
+from langgraph.graph.message import Messages, add_messages
 from langgraph_sdk import get_client
 from typing_extensions import Annotated
 
-from chatbot.prompts import SYSTEM_PROMPT
+from chatbot.configuration import ChatConfigurable
+from chatbot.utils import format_memories, init_model
 
 
 @dataclass
 class ChatState:
     """The state of the chatbot."""
 
-    messages: Annotated[List[AnyMessage], add_messages]
+    messages: Annotated[list[Messages], add_messages]
 
 
-@dataclass(kw_only=True)
-class ChatConfigurable:
-    """The configurable fields for the chatbot."""
-
-    user_id: str = "default-user"
-    mem_assistant_id: str = (
-        "memory_graph"  # update to the UUID if you configure a custom assistant
-    )
-    model: str = "anthropic/claude-3-5-sonnet-20240620"
-    delay_seconds: int = 10  # For debouncing memory creation
-    system_prompt: str = SYSTEM_PROMPT
-    # None will default to connecting to the local deployment
-    memory_service_url: str | None = None
-
-    @classmethod
-    def from_runnable_config(cls, config: Optional[RunnableConfig] = None):
-        """Load configuration."""
-        configurable = (
-            config["configurable"] if config and "configurable" in config else {}
-        )
-        values = {
-            f.name: os.environ.get(f.name.upper(), configurable.get(f.name))
-            for f in fields(cls)
-            if f.init
-        }
-        return cls(**{k: v for k, v in values.items() if v})
-
-
-def format_memories(memories: Optional[list[dict]]) -> str:
-    """Format the user's memories."""
-    if not memories:
-        return ""
-    # Note Bene: You can format better than this....
-    memories = "\n".join(str(m) for m in memories)
-    return f"""
-
-## Memories
-
-You have noted the following memorable events from previous interactions with the user.
-<memories>
-{memories}
-</memories>
-"""
-
-
-def init_model(fully_specified_name: str):
-    """Initialize the configured chat model."""
-    if "/" in fully_specified_name:
-        provider, model = fully_specified_name.split("/", maxsplit=1)
-    else:
-        provider = None
-        model = fully_specified_name
-    return init_chat_model(model, model_provider=provider)
-
-
-async def bot(state: ChatState, config: RunnableConfig) -> ChatState:
+async def bot(state: ChatState, config: RunnableConfig) -> dict[str, list[Messages]]:
     """Prompt the bot to resopnd to the user, incorporating memories (if provided)."""
     configurable = ChatConfigurable.from_runnable_config(config)
     memory_client = get_client(url=configurable.memory_service_url)
@@ -89,27 +32,29 @@ async def bot(state: ChatState, config: RunnableConfig) -> ChatState:
 
     model = init_model(configurable.model)
     prompt = configurable.system_prompt.format(
-        user_info=format_memories([item["value"] for item in user_memory["items"]]),
+        user_info=format_memories([item for item in user_memory["items"]]),
         time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
     )
     m = await model.ainvoke(
-        [{"role": "system", "content": prompt}] + state.messages,
+        [{"role": "system", "content": prompt}, *state.messages],
     )
 
     return {"messages": [m]}
 
 
-async def schedule_memories(state: ChatState, config: RunnableConfig) -> ChatState:
-    """Prompt the bot to resopnd to the user, incorporating memories (if provided)."""
+async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
+    """Prompt the bot to respond to the user, incorporating memories (if provided)."""
     configurable = ChatConfigurable.from_runnable_config(config)
     memory_client = get_client(url=configurable.memory_service_url)
-    memory_thread = uuid.uuid5(
-        uuid.NAMESPACE_DNS,
-        configurable.user_id + config["configurable"]["thread_id"],
+    memory_thread = str(
+        uuid.uuid5(
+            uuid.NAMESPACE_DNS,
+            configurable.user_id + config["configurable"]["thread_id"],
+        )
     )
     await memory_client.threads.create(thread_id=memory_thread, if_exists="do_nothing")
     await memory_client.runs.create(
-        memory_thread,
+        thread_id=memory_thread,
         assistant_id=configurable.mem_assistant_id,
         input={
             # the service dedupes messages by ID, so we can send the full convo each time
@@ -122,7 +67,7 @@ async def schedule_memories(state: ChatState, config: RunnableConfig) -> ChatSta
             },
         },
         multitask_strategy="rollback",
-        # This let's us "debounce" repeated requests to the memory graph
+        # This lets us "debounce" repeated requests to the memory graph
         # if the user is actively engaging in a conversation
         after_seconds=configurable.delay_seconds,
     )

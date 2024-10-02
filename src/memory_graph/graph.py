@@ -8,9 +8,9 @@ import uuid
 from dataclasses import asdict
 
 from langchain_core.runnables import RunnableConfig
-from langgraph.constants import Send
 from langgraph.graph import StateGraph
 from langgraph.store.base import BaseStore
+from langgraph.types import Send
 from trustcall import create_extractor
 
 from memory_graph import configuration, utils

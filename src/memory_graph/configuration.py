@@ -1,13 +1,11 @@
-"""Define the configurable parameters for the agent."""
+"""Define the configurable parameters for the memory service."""
 
 import os
 from dataclasses import dataclass, field, fields
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from langchain_core.runnables import RunnableConfig
 from typing_extensions import Annotated
-
-from memory_graph.prompts import SYSTEM_PROMPT
 
 
 @dataclass(kw_only=True)
@@ -15,11 +13,15 @@ class MemoryConfig:
     """Configuration for memory-related operations."""
 
     name: str
+    """This tells the model how to reference the function 
+    
+    and organizes related memories within the namespace."""
     description: str
+    """Description for what this memory type is intended to capture."""
 
-    parameters: dict
+    parameters: dict[str, Any]
     """The JSON Schema of the memory document to manage."""
-    system_prompt: Optional[str] = SYSTEM_PROMPT
+    system_prompt: str = ""
     """The system prompt to use for the memory assistant."""
     update_mode: Literal["patch", "insert"] = field(default="patch")
     """Whether to continuously patch the memory, or treat each new
@@ -54,12 +56,14 @@ class Configuration:
     """The memory_types for the memory assistant."""
 
     @classmethod
-    def from_runnable_config(cls, config: Optional[RunnableConfig] = None):
+    def from_runnable_config(
+        cls, config: Optional[RunnableConfig] = None
+    ) -> "Configuration":
         """Create a Configuration instance from a RunnableConfig."""
         configurable = (
             config["configurable"] if config and "configurable" in config else {}
         )
-        values = {
+        values: dict[str, Any] = {
             f.name: os.environ.get(f.name.upper(), configurable.get(f.name))
             for f in fields(cls)
             if f.init
@@ -91,6 +95,19 @@ DEFAULT_MEMORY_CONFIGS = [
                     "items": {"type": "string"},
                     "description": "A list of the user's interests",
                 },
+                "home": {
+                    "type": "string",
+                    "description": "Description of the user's home town/neighborhood, etc.",
+                },
+                "occupation": {
+                    "type": "string",
+                    "description": "The user's current occupation or profession",
+                },
+                "conversation_preferences": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "A list of the user's preferred conversation styles, pronouns, topics they want to avoid, etc.",
+                },
             },
         },
     ),
@@ -103,7 +120,11 @@ DEFAULT_MEMORY_CONFIGS = [
             "properties": {
                 "context": {
                     "type": "string",
-                    "description": "The situation or circumstance in which the memory occurred that inform when it would be useful to recall this.",
+                    "description": "The situation or circumstance where this memory may be relevant. "
+                    "Include any caveats or conditions that contextualize the memory. "
+                    "For example, if a user shares a preference, note if it only applies "
+                    "in certain situations (e.g., 'only at work'). Add any other relevant "
+                    "'meta' details that help fully understand when and how to use this memory.",
                 },
                 "content": {
                     "type": "string",

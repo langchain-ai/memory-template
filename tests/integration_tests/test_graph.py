@@ -3,9 +3,11 @@ from datetime import datetime
 from typing import Literal, Optional
 
 import langsmith as ls
+import pytest
 from langgraph.store.memory import InMemoryStore
-from memory_graph.graph import builder
 from pydantic import BaseModel, Field
+
+from memory_graph.graph import builder
 
 
 class User(BaseModel):
@@ -49,6 +51,7 @@ def create_memory_function(
     }
 
 
+@pytest.mark.asyncio
 @ls.unit
 async def test_patch_memory_stored():
     mem_store = InMemoryStore()
@@ -57,14 +60,14 @@ async def test_patch_memory_stored():
     thread_id = str(uuid.uuid4())
     user_id = "my-test-user"
     config = {
-        "configurable": {"memory_types": {"User": mem_func}},
+        "configurable": {"memory_types": [mem_func]},
         "thread_id": thread_id,
         "user_id": user_id,
     }
     await graph.ainvoke(
         {"messages": [("user", "My name is Bob. I like fun things")]}, config
     )
-    namespace = ("user_states", user_id, "User")
+    namespace = (user_id, "user_states", "User")
     memories = mem_store.search(namespace)
     ls.expect(len(memories)).to_equal(1)
     mem = memories[0]
@@ -111,6 +114,7 @@ class Relationship(BaseModel):
     )
 
 
+@pytest.mark.asyncio
 @ls.unit
 async def test_insertion_memory_stored():
     mem_store = InMemoryStore()
@@ -123,7 +127,7 @@ async def test_insertion_memory_stored():
     thread_id = str(uuid.uuid4())
     user_id = "my-test-user"
     config = {
-        "configurable": {"memory_types": {"Relationship": mem_func}},
+        "configurable": {"memory_types": [mem_func]},
         "user_id": user_id,
     }
     await graph.ainvoke(
@@ -161,7 +165,7 @@ async def test_insertion_memory_stored():
         },
         {**config, "thread_id": thread_id},
     )
-    namespace = ("events", user_id, "Relationship")
+    namespace = (user_id, "events", "Relationship")
     memories = mem_store.search(namespace)
     ls.expect(len(memories)).to_be_greater_than(1)
     # Check for Joanne's relationship

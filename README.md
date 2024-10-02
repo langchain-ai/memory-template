@@ -71,13 +71,36 @@ OPENAI_API_KEY=your-api-key
 End setup instructions
 -->
 
-3. Open in LangGraph studio. Navigate to the "memory_graph" and click on the "Assistants" drop-down to make a new assistant.
-   a. Call this assissitant "MyMemoryAssistant".
-   b. Configure what types of memories you'd like this assistant to be processing by pasting the following as the 'memory_types' configuration:
+3. Open in LangGraph studio. Navigate to the "`chatbot`" graph and have a conversation with it! Try sending some messages saying your name and other things the bot should remember.
+
+Wait ~10-20 seconds and then create a *new* thread using the `+` icon. Then chat with the bot again - if you've completed your setup correctly, the bot should now have access to the memories you've saved!
+
+## How it works
+
+This chat bot reads from your memory graph's `Store` to easily list extracted memories.
+
+Connecting to this type of memory service typically follows an interaction pattern similar to the one outlined below:
+
+![Interaction Pattern](./static/memory_interactions.png)
+
+The service waits for a pre-determined interval before it considers the thread "complete". If the user queries a second time within that interval, the memory run is cancelled to avoid duplicate processing of a thread.
+
+## How to evaluate
+
+Memory management can be challenging to get right. To make sure your memory_types suit your applications' needs, we recommend starting from an evaluation set, adding to it over time as you find and address common errors in your service.
+
+We have provided a few example evaluation cases in [the test file here](./tests/integration_tests/test_graph.py). As you can see, the metrics themselves don't have to be terribly complicated, especially not at the outset.
+
+We use [LangSmith's @unit decorator](https://docs.smith.langchain.com/how_to_guides/evaluation/unit_testing#write-a-test) to sync all the evaluations to LangSmith so you can better optimize your system and identify the root cause of any issues that may arise.
+
+## How to customize
+
+Customize memory memory_types: This memory graph supports two different `update_modes` that dictate how memories will be managed:
+
+1. Patch Schema: This allows updating a single, continuous memory schema with new information from the conversation. You can customize the schema for this type by defining the JSON schema when initializing the memory schema. For example:
 
 ```json
-[
-  {
+{
     "name": "User",
     "description": "Update this document to maintain up-to-date information about the user in the conversation.",
     "update_mode": "patch",
@@ -101,8 +124,13 @@ End setup instructions
         }
       }
     }
-  },
-  {
+  }
+```
+
+2. Insertion Schema: This allows inserting individual "event" memories, such as key pieces of information or summaries from the conversation. You can define custom memory_types for these event memories by providing a JSON schema when initializing the InsertionMemorySchema. For example:
+
+```json
+{
     "name": "Note",
     "description": "Save notable memories the user has shared with you for later recall.",
     "update_mode": "insert",
@@ -121,92 +149,6 @@ End setup instructions
       "required": ["context", "content"]
     }
   }
-]
-```
-
-
-This tells the service to manage two types of memories:
-  1. A "User" profile - this "`insert`" update_mode generates and updates a single document for a given user.
-  2. "Note"s - this "`insert`" update_mode generates (or updates) any number of memories of this type for a given user.
-
-You can ignore the user_id for now - that will be provided when calling the service.
-
-Once you've created the assistant, copy the "AssistantID" for use in the next section.
-
-4. Staying in LangGraph Studio, switch to the "chat bot" graph and create an assistant there. Most of the fields can be omitted, since they have reasonable defaults in code. Set the  
-  b. Mem Assistant Id = the AssistantID you copied from the previous step
-  c. User ID: "my-example-user" (you can set it however you'd like) 
-
-The rest of the values can remain blank. The "Memory Service Url" will default to "None" which means it will connect to the graph running in the same deployment as your chat bot. If you are running these in separate deployments, you can provide the deployment URL there.
-
-5. Connect to the chat bot! Click "Open in Studio"
-a. Send some messages saying your name and other things the bot should remember.
-b. Try creating a new thread and chatting with the bot again - if it's been at least 60 seconds, the bot should now have access to the memories you've saved!
-
-## How it works
-
-This chat bot reads from your memory graph's `Store` to easily list extracted memories.
-
-Connecting to this type of memory service typically follows an interaction pattern similar to the one outlined below:
-
-![Interaction Pattern](./static/memory_interactions.png)
-
-The service waits for a pre-determined interval before it considers the thread "complete". If the user queries a second time within that interval, the memory run is cancelled to avoid duplicate processing of a thread.
-
-## How to evaluate
-
-Memory management can be challenging to get right. To make sure your memory_types suit your applications' needs, we recommend starting from an evaluation set, adding to it over time as you find and address common errors in your service.
-
-We have provided a few example evaluation cases in [the test file here](./tests/integration_tests/test_graph.py). As you can see, the metrics themselves don't have to be terribly complicated, especially not at the outset.
-
-We use [LangSmith's @unit decorator](https://docs.smith.langchain.com/how_to_guides/evaluation/unit_testing#write-a-test) to sync all the evaluations to LangSmith so you can better optimize your system and identify the root cause of any issues that may arise.
-
-## How to customize
-
-Customize memory memory_types: The memory service supports two types of memory memory_types:
-
-1. Patch Schema: This allows updating a single, continuous memory schema with new information from the conversation. You can customize the schema for this type by defining the JSON schema when initializing the memory schema. For example:
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "user_name": {
-      "type": "string",
-      "description": "The user's preferred name"
-    },
-    "age": {
-      "type": "integer",
-      "description": "The user's age"
-    },
-    "interests": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "A list of the user's interests"
-    }
-  }
-}
-```
-
-2. Insertion Schema: This allows inserting individual "event" memories, such as key pieces of information or summaries from the conversation. You can define custom memory_types for these event memories by providing a JSON schema when initializing the InsertionMemorySchema. For example:
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "context": {
-      "type": "string",
-      "description": "The situation or circumstance in which the memory occurred that inform when it would be useful to recall this."
-    },
-    "content": {
-      "type": "string",
-      "description": "The specific information, preference, or event being remembered."
-    }
-  },
-  "required": ["context", "content"]
-}
 ```
 
 3. Select a different model: We default to anthropic/claude-3-5-sonnet-20240620. You can select a compatible chat model using provider/model-name via configuration. Example: openai/gpt-4.

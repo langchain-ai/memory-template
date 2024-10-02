@@ -1,12 +1,10 @@
 {
-  "dockerfile_lines": [],
-  "graphs": {
-    "memory_graph": "./src/memory_graph/graph.py:graph",
-    "chatbot": "./src/chatbot/graph.py:graph"
-  },
-  "env": ".env",
-  "python_version": "3.11",
-  "dependencies": [
-    "."
-  ]
+    "dockerfile_lines": [],
+    "graphs": {
+        "chatbot": "./src/chatbot/graph.py:graph",
+        "memory_graph": "./src/memory_graph/graph.py:graph"
+    },
+    "env": ".env",
+    "python_version": "3.11",
+    "dependencies": ["."]
 }

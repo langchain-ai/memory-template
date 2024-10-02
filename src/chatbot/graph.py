@@ -27,10 +27,12 @@ class ChatState:
 class ChatConfigurable:
     """The configurable fields for the chatbot."""
 
-    user_id: str
-    mem_assistant_id: str
-    model: str = "claude-3-5-sonnet-20240620"
-    delay_seconds: int = 60  # For debouncing memory creation
+    user_id: str = "default-user"
+    mem_assistant_id: str = (
+        "memory_graph"  # update to the UUID if you configure a custom assistant
+    )
+    model: str = "anthropic/claude-3-5-sonnet-20240620"
+    delay_seconds: int = 10  # For debouncing memory creation
     system_prompt: str = SYSTEM_PROMPT
     # None will default to connecting to the local deployment
     memory_service_url: str | None = None
@@ -66,6 +68,16 @@ You have noted the following memorable events from previous interactions with th
 """
 
 
+def init_model(fully_specified_name: str):
+    """Initialize the configured chat model."""
+    if "/" in fully_specified_name:
+        provider, model = fully_specified_name.split("/", maxsplit=1)
+    else:
+        provider = None
+        model = fully_specified_name
+    return init_chat_model(model, model_provider=provider)
+
+
 async def bot(state: ChatState, config: RunnableConfig) -> ChatState:
     """Prompt the bot to resopnd to the user, incorporating memories (if provided)."""
     configurable = ChatConfigurable.from_runnable_config(config)
@@ -75,7 +87,7 @@ async def bot(state: ChatState, config: RunnableConfig) -> ChatState:
     # you can also filter by content.
     user_memory = await memory_client.store.search_items(namespace)
 
-    model = init_chat_model(configurable.model)
+    model = init_model(configurable.model)
     prompt = configurable.system_prompt.format(
         user_info=format_memories([item["value"] for item in user_memory["items"]]),
         time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),

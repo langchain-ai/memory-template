@@ -20,8 +20,6 @@ class ChatConfigurable:
     model: str = "anthropic/claude-3-5-sonnet-20240620"
     delay_seconds: int = 10  # For debouncing memory creation
     system_prompt: str = SYSTEM_PROMPT
-    # None will default to connecting to the local deployment
-    memory_service_url: str | None = None
 
     @classmethod
     def from_runnable_config(

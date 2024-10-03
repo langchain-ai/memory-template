@@ -95,7 +95,7 @@ async def test_patch_memory_stored():
 class Relationship(BaseModel):
     """A relationship memory type for insertion.
 
-    Call for each distinct indivual the user interacts with.
+    Call for each distinct indivual the user interacts with. Don't forget to document each new relationship with a new entry.
     """
 
     name: str = Field(description="The legal name of the person.")
@@ -120,7 +120,8 @@ async def test_insertion_memory_stored():
     mem_store = InMemoryStore()
     mem_func = create_memory_function(
         Relationship,
-        custom_instructions="Extract all relationships mentioned. Call Relationship once per-relationship.",
+        custom_instructions="Extract all relationships mentioned. Call Relationship once per-relationship."
+        " Use parallel tool calling to handle updates & insertions simultaneously.",
         kind="insert",
     )
     graph = builder.compile(store=mem_store)

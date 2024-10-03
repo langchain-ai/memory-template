@@ -1,18 +1,19 @@
 """Define utility functions for your graph."""
 
-from typing import Any, Mapping, Optional
+from typing import Optional
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
+from langgraph.store.base import Item
 
 
-def format_memories(memories: Optional[list[Mapping[str, Any]]]) -> str:
+def format_memories(memories: Optional[list[Item]]) -> str:
     """Format the user's memories."""
     if not memories:
         return ""
     # Note Bene: You can format better than this....
     formatted_memories = "\n".join(
-        f'{str(m["value"])}\tLast updated: {m["updated_at"]}' for m in memories
+        f"{str(m.value)}\tLast updated: {m.updated_at}" for m in memories
     )
     return f"""
 

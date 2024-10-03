@@ -16,7 +16,7 @@ def prepare_messages(
         "content": f"""{system_prompt}
 
 <memory-system>Reflect on following interaction. Use the provided tools to \
- retain any necessary memories about the user.</memory-system>
+ retain any necessary memories about the user. Use parallel tool calling to handle updates & insertions simultaneously.</memory-system>
 """,
     }
     m = {

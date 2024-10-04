@@ -66,7 +66,7 @@ OPENAI_API_KEY=your-api-key
 End setup instructions
 -->
 
-### Test in LangGraph Studio
+### LangGraph Studio
 
 If you want to test locally, [install the LangGraph Studio desktop app](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download). 
 
@@ -74,7 +74,7 @@ If you want to test in the cloud, [follow these instructions to deploy this repo
 
 Open this repository in LangGraph studio. 
 
-In LangGraph Studio, you can set your `user_id`, `model`, and other configurations.
+In LangGraph Studio, you can set your `user_id`, `model`, or other configurations.
 
 ![Flow](./static/studio.png)
 
@@ -82,7 +82,9 @@ Navigate to the "`chatbot`" graph and have a conversation with it!
 
 Try sending some messages saying your name and other things the bot should remember.
 
-Wait ~10-20 seconds for many memories to be created and saved, then create a *new* thread using the `+` icon. 
+Wait ~10-20 seconds for many memories to be created and saved.
+
+Then, create a *new* thread using the `+` icon. 
 
 Then chat with the bot again - if you've completed your setup correctly, the bot should now have access to the memories you've saved!
 

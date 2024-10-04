@@ -6,7 +6,7 @@
 
 ## Motivation
 
-Memory is a powerful way to improve and personalize AI applications. As an example, memory can be used to store user-specific  information across multiple interactions with that user. But, it can also extend to any information that you may want to preserve across multiple interactions with an application. This template show how you can build and deploy a long-term memory service using LangGraph by combining a memory service with a simple chatbot application.
+Memory lets your AI applications learn from each user interaction. It makes them more effective as they learn from mistakes and engaging as they adapt to personal tastes. This template shows you how to build and deploy a long-term memory service that you can connect to from any LangGraph agent so they can manage user-scoped memories.
 
 ![Motivation](./static/memory_motivation.png)
 
@@ -44,12 +44,14 @@ To use Anthropic's chat models:
 ```
 ANTHROPIC_API_KEY=your-api-key
 ```
+
 #### OpenAI
 
 To use OpenAI's chat models:
 
 1. Sign up for an [OpenAI API key](https://platform.openai.com/signup).
 2. Once you have your API key, add it to your `.env` file:
+
 ```
 OPENAI_API_KEY=your-api-key
 ```
@@ -58,116 +60,157 @@ OPENAI_API_KEY=your-api-key
 End setup instructions
 -->
 
-If you want to test the memory service locally, [install the LangGraph Studio desktop app](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download). 
+[Open this template](https://langgraph-studio.vercel.app/templates/open?githubUrl=https://github.com/langchain-ai/memory-template) in LangGraph studio to get started and navigate to the `chatbot` graph.
 
-If you want to test in the cloud, [follow these instructions to deploy this repository to LangGraph Cloud](https://langchain-ai.github.io/langgraph/cloud/) and use Studio in your browser. 
-
-Open this repository in LangGraph studio and navigate to the `chatbot` graph.  
-
-Optionally, you can set your `user_id`, `model`, or other configurations directly in the Studio UI.
+_If you want to deploy to the cloud, [follow these instructions to deploy this repository to LangGraph Cloud](https://langchain-ai.github.io/langgraph/cloud/) and use Studio in your browser._
 
 ![Flow](./static/studio.png)
 
-Try sending some messages saying your name and other things the bot should remember.
+Try chatting with the bot. Saying your name and other the bot may want to remember.
 
 Wait ~10-20 seconds for memories to be created and saved.
 
-Create a *new* thread using the `+` icon. 
-
-Then chat with the bot again. 
+Create a _new_ thread using the `+` icon and chat with the bot again.
 
 The bot should have access to the memories you've saved, and will use them to personalize its responses.
 
 ## How it works
 
-There are several problems to solve when building a memory service:
+An effective memory service should address some key questions:
 
 1. What should each memory contain?
-2. How should memories be updated?
-3. How frequently should memories be updated or created?
-4. Where should memories be stored?
-5. How to call the memory service from our application?
+2. How should memories be updated? (and on what schedule?)
+3. How should your bot recall memories?
 
-We'll address these challenges below, and explain how this LangGraph template approaches them. 
+The "correct" answer to these questions can be application-specific. We'll address these challenges below, and explain how this template lets you flexibly
+configure what and how memories are managed to keep your bot's memory on-topic and up-to-date. First, we'll talk about how you configure "what each memory should contain" using memory schemas.
 
-### Memory Schema
+### Memory Schemas
 
-The memory schema defines what each memory will contain. 
+Memory schemas tell the service the "shape" of individual memories and how to update them. You can define any custom memory schema by providing `memory_types` as configuration. Let's review the [two default schemas](./src/memory_graph/configuration.py) we've provided along the template to get a better sense of what they are doing.
 
-By default, this template uses two memory schemas: `User` and `Note`. Both are JSON schemas.
+The first schema is the `User` profile schema, copied below:
 
-The schemas are defined in [memory_graph/configuration.py](./src/memory_graph/configuration.py). 
+```json
+{
+  "name": "User",
+  "description": "Update this document to maintain up-to-date information about the user in the conversation.",
+  "update_mode": "patch",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_name": {
+        "type": "string",
+        "description": "The user's preferred name"
+      },
+      "age": {
+        "type": "integer",
+        "description": "The user's age"
+      },
+      "interests": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "A list of the user's interests"
+      },
+      "home": {
+        "type": "string",
+        "description": "Description of the user's home town/neighborhood, etc."
+      },
+      "occupation": {
+        "type": "string",
+        "description": "The user's current occupation or profession"
+      },
+      "conversation_preferences": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "A list of the user's preferred conversation styles, pronouns, topics they want to avoid, etc."
+      }
+    }
+  }
+}
+```
 
-The `User` schema is used to store a single profile for a user with a set of predefined properties (e.g., name, age, interests). 
+The schema has a name and description, as well as JSON schema parameters that are all passed to an LLM. The LLM infers the values for the schema based on the conversations you send to the memory service.
 
-The `Note` schema is more flexible, containing a `context` and `content` field to capture any type of information as a memory. 
+The schema also has an `update_mode` parameter that defines **how** the service should update its memory when new information is provided. The **patch** update_mode instructs the graph that we should always have a single JSON object to represent this user. When new information is provided, the model can generate "patches", or small updates to extend, delete, or replace content in the current memory document. This type of `update_mode` is useful if you want strict visibility into a user's representation at any given point or if you want to let the end user directly view and update their own representation for the bot. By defining these specific parameters, we are decideing that this (and only this) information is relevant to track and excluding other information (like "relationships" or "religion", etc.) from being tracked. It's an easy way for us to bias the service into focusing on what we think is important for our specific bot.
 
-These schemas are customizable! You can create new schemas, or add / remove properties as needed for your application.
+The second memory schema we provide is the **Note** schema, shown below:
 
-### Memory Updates
+```json
+{
+  "name": "Note",
+  "description": "Save notable memories the user has shared with you for later recall.",
+  "update_mode": "insert",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "context": {
+        "type": "string",
+        "description": "The situation or circumstance where this memory may be relevant. Include any caveats or conditions that contextualize the memory. For example, if a user shares a preference, note if it only applies in certain situations (e.g., 'only at work'). Add any other relevant 'meta' details that help fully understand when and how to use this memory."
+      },
+      "content": {
+        "type": "string",
+        "description": "The specific information, preference, or event being remembered."
+      }
+    },
+    "required": ["context", "content"]
+  }
+}
+```
 
-These memory schemas need to be updated with new information over time.
+Just like the previous example, this schema has a name, description, and parameters. Notic that the `update_mode` this time is "insert". This instructs the LLM in the memory service to **insert new memories to the list or update existing ones**. The number of memories for this `update_mode` is **unbound** since the model can continue to store new notes any time something interesting shows up in the conversation. Each time the service runs, the model can generate multiple schemas, some to update or re-contextualize existing memories, some to document new information. Note taht these memory schemas tend to have fewer parameters and are usually most effective if you have a field to let the service provide contextual information (so that if your bot fetches this memory, it isn't taken out-of-context).
 
-The `User` schema is a single JSON object. 
+To wrap up this section: `memory_schemas` provide a name, description, and parameters that the LLM populates to store in the database. The `update_mode` controls whether new information should always overwrite an existing memory or whether it should insert new memories (while optionally updating existing ones).
 
-We want to update it with new information about the user as the conversation progresses.
+These schemas are fully customizable! Try extending the above and seeing how it updates memory formation in the studio by passing in via configuration (or defining in an assistant).
 
-Each `Note`, in contrast, is captured in a list. 
+### Handling Memory Updates
 
-We want the flexibility to update existing `Note` schemas or update the list with new ones.
+In the previous section we showed how the memory schemas define how memories should be updated with new information over time. Let's now turn our attention to _how_ new information is handled. Each update type using tool calling in slightly different ways. We will use the [`trustcall` library](https://github.com/hinthornw/trustcall), which we created as a simple interface for generating and continuously updating json documents, to handle all of the cases below:
 
-We use the [`trustcall` library](https://github.com/hinthornw/trustcall) to do both of these types of updates.
+#### patch
 
-This is a library that we created for updating JSON schemas via a LLM.
+If no memory has been saved yet, `trust_call` prompts the model to populate the document. It additionally does schema validation to ensure the output is correct.
 
-These updates are performed in [memory_graph/graph.py](./src/memory_graph/graph.py).
+If a memory already exists, you _could_ simply prompt the model to re-geerate the schema anew on each round. Doing so, however, leads to frequent information loss, especially on complicated schemas, since LLMs are wont to forget or omit previously stored details when regenerating information from scratch if it doesn't happen to be immediately relevant.
 
-The `memory_graph` saves both types of memories.
+To avoid memory loss, your memory schema is placed in the system prompt but **not** made available as a tool for the model to call. Instead, the LLM is provided a `PatchDoc` tool. This forces the model to generate a chain-of-thought of 0 or more planned edits, along with patches to individual JSON paths to be modified.
 
-We can see the graph here in the LangGraph Studio, with a branch for each of the defined memory schemas: 
+Applying updates as JSON patches helps minimize information loss, save token costs, and simplifies the memory management task.
 
-* `handle_patch_memory` is for `User` schema memories.
-* `handle_insert_memory` is for `Note` schema memories.
+#### insert
+
+If no memories have been saved yet, the model is given a single tool (the schema from your memory config). It is prompted to use multi-tool callint to generate 0 or more instances of your schema depending on the conversation context.
+
+If memories exist for this user, the memory graph searches for existing ones to provide additional context. These are put in the system promt along with two two tools: your memory schema as well as a "PatchDoc" tool. The LLM is prompted to invoke whichever tools are appropriate given the conversational context. The LLM can call the PatchDoc tool to update existing memories in case they are no longer correct or require additional context. It can also call your memory schema tool any number of times to save new memories or notes. Either way, it calls these tools in a single generation step, and the graph upserts the results to the memory store.
 
 ![Memory Diagram](./static/memory_graph.png)
 
 ### Memory Scheduling
 
-Memory updates need to be scheduled to avoid duplicate processing.
+All of this sounds like a lot of tokens! If we were to process memories on every new message to your chat bot, the costs could indeed mount up. We only really need to process memories after a conversation ends, but in reality we typically don't know when the thread is finished.
 
-Ideally, we want to wait until a chat is complete before we create memories.
+As a compromise, our memory service supports **debouncing** by deferring when it will process memories. Memory updates are scheduled for some point in the future (using the LangGraph SDK's `after_seconds` parameter).
 
-But, we don't know when a chat session will end.
+If the chatbot makes a call second time within that interval, the initial request is cancelled and a **new** request for memory processing is scheduled.
 
-So, we wait a pre-determined interval before invoking the memory graph to memories to the storage layer.
-
-If the chatbot makes a call second time within that interval, the initial memory is cancelled. 
-
-Scheduling is handled by the LangGraph SDK's `after_seconds` parameter. 
-
-We call the `memory_graph` from our application (e.g., `chatbot`) using the LangGraph SDK in [chatbot/graph.py](./src/chatbot/graph.py).
+See this in the code here: [chatbot/graph.py](./src/chatbot/graph.py).
 
 ![DeBounce](./static/scheduling.png)
 
 ### Memory Storage
 
-The LangGraph API comes with a built-in memory storage layer that can be used to store and retrieve information across threads. 
+All these memories need to go somewhere reliable. All LangGraph deployments come with a built-in memory storage layer that you can use to persist information across conversations.
 
-Learn more about the Memory Storage layer [here](https://langchain-ai.github.io/langgraph/how-tos/memory/shared-state/).
+You can learn more about Storage in LangGraph [here](https://langchain-ai.github.io/langgraph/how-tos/memory/shared-state/).
 
-Importantly, the memory storage layer is namespaced by a tuple; in this case, we use the `user_id` as well as the schema name.
-
-In addition, the memory storage layer is accessible to both the `chatbot` and the `memory_graph` in all graph nodes.
-
-This diagram shows how these pieces fit together: 
+In our case, we are saving all memories namespaced by `user_id` and by the memory scheam you provide. That way you can easily search for memories for a given user and of a particualr type. This diagram shows how these pieces fit together:
 
 ![Memory types](./static/memory_types.png)
 
 ### Calling the Memory Service
 
-Studio uses the LangGraph API as its backend, packaging the specified code repository with the storage layer.
-
-The `langgraph.json` file is used to configure the LangGraph API specifies the graphs to be run in Studio:
+The studio uses the LangGraph API as its backend and exposes graph endpoints for all the graphs defied in your `langgraph.json` file.
 
 ```json
     "graphs": {
@@ -176,19 +219,13 @@ The `langgraph.json` file is used to configure the LangGraph API specifies the g
     },
 ```
 
-The chatbot can directly access all stored memories when it's preparing responses for the user.
-
-You can see this in the in the `bot` node in [chatbot/graph.py](./src/chatbot/graph.py):
+You can interact with your server and storage using the studio UI or the LangGraph SDK.
 
 ```python
-items = await store.asearch(namespace)
+from langgraph_sdk import get_client
+client = get_client(url="http:...") # your server
+items = await client.store.search_items(namespace)
 ```
-
-To schedule creation of new memories, the chatbot can use the LangGraph SDK to access the memory graph.
-
-This is done in the `schedule_memories` node in [chatbot/graph.py](./src/chatbot/graph.py)
-
-This passes the chatbot's interaction with the user along with the scheduling parameter, `after_seconds`, to the `memory_graph`.
 
 ![Flow](./static/memory_template_flow.png)
 
@@ -222,64 +259,60 @@ Customize memory memory_types: This memory graph supports two different `update_
 
 ```json
 {
-    "name": "User",
-    "description": "Update this document to maintain up-to-date information about the user in the conversation.",
-    "update_mode": "patch",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "user_name": {
-          "type": "string",
-          "description": "The user's preferred name"
+  "name": "User",
+  "description": "Update this document to maintain up-to-date information about the user in the conversation.",
+  "update_mode": "patch",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "user_name": {
+        "type": "string",
+        "description": "The user's preferred name"
+      },
+      "age": {
+        "type": "integer",
+        "description": "The user's age"
+      },
+      "interests": {
+        "type": "array",
+        "items": {
+          "type": "string"
         },
-        "age": {
-          "type": "integer",
-          "description": "The user's age"
-        },
-        "interests": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "A list of the user's interests"
-        }
+        "description": "A list of the user's interests"
       }
     }
   }
+}
 ```
 
 2. Insertion Schema: This allows inserting individual "event" memories, such as key pieces of information or summaries from the conversation. You can define custom memory_types for these event memories by providing a JSON schema when initializing the InsertionMemorySchema. For example:
 
 ```json
 {
-    "name": "Note",
-    "description": "Save notable memories the user has shared with you for later recall.",
-    "update_mode": "insert",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "context": {
-          "type": "string",
-          "description": "The situation or circumstance in which the memory occurred that inform when it would be useful to recall this."
-        },
-        "content": {
-          "type": "string",
-          "description": "The specific information, preference, or event being remembered."
-        }
+  "name": "Note",
+  "description": "Save notable memories the user has shared with you for later recall.",
+  "update_mode": "insert",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "context": {
+        "type": "string",
+        "description": "The situation or circumstance in which the memory occurred that inform when it would be useful to recall this."
       },
-      "required": ["context", "content"]
-    }
+      "content": {
+        "type": "string",
+        "description": "The specific information, preference, or event being remembered."
+      }
+    },
+    "required": ["context", "content"]
   }
+}
 ```
 
 3. Select a different model: We default to anthropic/claude-3-5-sonnet-20240620. You can select a compatible chat model using provider/model-name via configuration. Example: openai/gpt-4.
 4. Customize the prompts: We provide default prompts in the graph definition. You can easily update these via configuration.
 
-For quick prototyping, these configurations can be set in the LangGraph Studio UI.
-
-You can also quickly extend this template by:
-
-- Adding additional nodes and edges in [graph.py](./src/memory_graph/graph.py) to modify the memory processing flow.
+We'd also encourage you to extend this template by adding additional memory types! "Patch" and "insert" are incredibly powerful already, but you could also extend the logic to add more reflection over related memories to build stronger associations between the saved content. Make the code your own!
 
 <!--
 Configuration auto-generated by `langgraph template lock`. DO NOT EDIT MANUALLY.

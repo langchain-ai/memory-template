@@ -5,9 +5,8 @@ from typing import Literal, Optional
 import langsmith as ls
 import pytest
 from langgraph.store.memory import InMemoryStore
-from pydantic import BaseModel, Field
-
 from memory_graph.graph import builder
+from pydantic import BaseModel, Field
 
 
 class User(BaseModel):

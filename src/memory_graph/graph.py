@@ -23,7 +23,6 @@ async def handle_patch_memory(
     state: ProcessorState, config: RunnableConfig, *, store: BaseStore
 ) -> dict:
     """Extract the user's state from the conversation and update the memory."""
-    
     # Get the overall configuration 
     configurable = configuration.Configuration.from_runnable_config(config)
 
@@ -74,9 +73,7 @@ async def handle_patch_memory(
 async def handle_insertion_memory(
     state: ProcessorState, config: RunnableConfig, *, store: BaseStore
 ) -> dict[str, list]:
-    
     """Handle insertion memory events."""
-    
     # Get the overall configuration 
     configurable = configuration.Configuration.from_runnable_config(config)
 
@@ -150,13 +147,12 @@ builder.add_node(handle_patch_memory, input=ProcessorState)
 builder.add_node(handle_insertion_memory, input=ProcessorState)
 
 def scatter_schemas(state: State, config: RunnableConfig) -> list[Send]:
-    """The entry point to the graph will will iterate over all memory types in the configuration.
+    """Iterate over all memory types in the configuration.
 
     It will route each memory type from configuration to the corresponding memory update node.
 
     The memory update nodes will be executed in parallel.
     """
-
     # Get the configuration 
     configurable = configuration.Configuration.from_runnable_config(config)
     sends = []

@@ -4,24 +4,21 @@
 [![Integration Tests](https://github.com/langchain-ai/memory-template/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/langchain-ai/memory-template/actions/workflows/integration-tests.yml)
 [![Open in - LangGraph Studio](https://img.shields.io/badge/Open_in-LangGraph_Studio-00324d.svg?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4NS4zMzMiIGhlaWdodD0iODUuMzMzIiB2ZXJzaW9uPSIxLjAiIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHBhdGggZD0iTTEzIDcuOGMtNi4zIDMuMS03LjEgNi4zLTYuOCAyNS43LjQgMjQuNi4zIDI0LjUgMjUuOSAyNC41QzU3LjUgNTggNTggNTcuNSA1OCAzMi4zIDU4IDcuMyA1Ni43IDYgMzIgNmMtMTIuOCAwLTE2LjEuMy0xOSAxLjhtMzcuNiAxNi42YzIuOCAyLjggMy40IDQuMiAzLjQgNy42cy0uNiA0LjgtMy40IDcuNkw0Ny4yIDQzSDE2LjhsLTMuNC0zLjRjLTQuOC00LjgtNC44LTEwLjQgMC0xNS4ybDMuNC0zLjRoMzAuNHoiLz48cGF0aCBkPSJNMTguOSAyNS42Yy0xLjEgMS4zLTEgMS43LjQgMi41LjkuNiAxLjcgMS44IDEuNyAyLjcgMCAxIC43IDIuOCAxLjYgNC4xIDEuNCAxLjkgMS40IDIuNS4zIDMuMi0xIC42LS42LjkgMS40LjkgMS41IDAgMi43LS41IDIuNy0xIDAtLjYgMS4xLS44IDIuNi0uNGwyLjYuNy0xLjgtMi45Yy01LjktOS4zLTkuNC0xMi4zLTExLjUtOS44TTM5IDI2YzAgMS4xLS45IDIuNS0yIDMuMi0yLjQgMS41LTIuNiAzLjQtLjUgNC4yLjguMyAyIDEuNyAyLjUgMy4xLjYgMS41IDEuNCAyLjMgMiAyIDEuNS0uOSAxLjItMy41LS40LTMuNS0yLjEgMC0yLjgtMi44LS44LTMuMyAxLjYtLjQgMS42LS41IDAtLjYtMS4xLS4xLTEuNS0uNi0xLjItMS42LjctMS43IDMuMy0yLjEgMy41LS41LjEuNS4yIDEuNi4zIDIuMiAwIC43LjkgMS40IDEuOSAxLjYgMi4xLjQgMi4zLTIuMy4yLTMuMi0uOC0uMy0yLTEuNy0yLjUtMy4xLTEuMS0zLTMtMy4zLTMtLjUiLz48L3N2Zz4=)](https://langgraph-studio.vercel.app/templates/open?githubUrl=https://github.com/langchain-ai/memory-template)
 
-This repo provides a simple example of a long-term memory service you can build and deploy using LangGraph.
+Memory is a powerful way to improve and personalize applications, allowing storage of information (e.g., a user-specific profile or memories) that can be used to inform responses or decisions across multiple interactions. This template provides a simple example of a long-term memory service you can build and deploy using LangGraph.
 
-This graph extracts memories from chat interactions and persists them to its store. This information can later be read via the API to provide personalized context when your bot is responding to a particular user.
+It has three main components:
 
-The memory graph handles debouncing when processing individual conversations (to help deduplicate work) and supports continuous updates to a single "memory schema" as well as "event-based" memories that can be fetched by recency and filtered.
+(1) `Chatbot Graph`: This is a simple chatbot that interacts with a user.
 
-This repo also provides an example chat bot (in this case, also a simple graph) that connects to the memory graph via the SDK.
-Any time you send a message to the chat bot, it will query the memory service to fetch the most up-to-date memories (if any) for the configured user. These memories are put in the system prompt. After responding, it will post the conversation to the memory service to schedule long-term memory formation.
+(2) `Memory Graph`: This graph contains the logic for creating memories with customizable schemas from the chatbot's user interactions. 
 
-This separation of concerns provides minimal overhead, allows deduplication of memory processing, and ensures you can optimize for better recall.
+(3) `Memory Storage`: This stores created memories, making them accessible across multiple user interactions with the chatbot.
 
-![Memory Diagram](./static/memory_graph.png)
+![Flow](./static/memory_template_flow.png)
 
 ## Getting Started
 
-This quickstart will get your memory service deployed on [LangGraph Cloud](https://langchain-ai.github.io/langgraph/cloud/). Once created, you can interact with it from any API.
-
-Assuming you have already [installed LangGraph Studio](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download), to set up:
+### Create .env file
 
 1. Create a `.env` file.
 
@@ -65,27 +62,126 @@ To use OpenAI's chat models:
 OPENAI_API_KEY=your-api-key
 ```
 
-
-
-
-
 <!--
 End setup instructions
 -->
 
-3. Open in LangGraph studio. Navigate to the "`chatbot`" graph and have a conversation with it! Try sending some messages saying your name and other things the bot should remember.
+### Test in LangGraph Studio
 
-Wait ~10-20 seconds and then create a *new* thread using the `+` icon. Then chat with the bot again - if you've completed your setup correctly, the bot should now have access to the memories you've saved!
+If you want to test locally, [install the LangGraph Studio desktop app](https://github.com/langchain-ai/langgraph-studio?tab=readme-ov-file#download). 
+
+If you want to test in the cloud, [follow these instructions to deploy this repository to LangGraph Cloud](https://langchain-ai.github.io/langgraph/cloud/) and open Studio in your browser. 
+
+Open this repository in LangGraph studio. 
+
+In LangGraph Studio, you can set your `user_id`, `model`, and other configurations.
+
+![Flow](./static/studio.png)
+
+Navigate to the "`chatbot`" graph and have a conversation with it! 
+
+Try sending some messages saying your name and other things the bot should remember.
+
+Wait ~10-20 seconds for many memories to be created and saved, then create a *new* thread using the `+` icon. 
+
+Then chat with the bot again - if you've completed your setup correctly, the bot should now have access to the memories you've saved!
 
 ## How it works
 
-This chat bot reads from your memory graph's `Store` to easily list extracted memories.
+### Memory Storage
 
-Connecting to this type of memory service typically follows an interaction pattern similar to the one outlined below:
+The LangGraph API comes with a built-in memory storage layer that can be used to store and retrieve information across threads. 
+
+Studio useds the LangGraph API at the backend, packaging the code in this repository with the storage layer.
+
+In Studio, you can see the `Memories` button above your graph with any memories created and saved to the storage layer.
+
+The storage layer is shown in the above diagram in red. 
+
+The central points are that it: 
+
+1. It is accessible to both the `chatbot` and the `memory_graph` in all nodes.
+2. It provides an interface for storing (`put` method) and retrieving (`search` method) memories in a namespaced manner. 
+
+Learn more about the Memory Storage layer [here](https://langchain-ai.github.io/langgraph/how-tos/memory/shared-state/).
+
+### Chatbot Graph
+
+The `chatbot` graph, defined in [graph.py](./src/chatbot/graph.py), has two nodes, `bot` and `schedule_memories`. 
+
+The `chatbot` is invoked with a `user_id` supplied by configuration. 
+
+The `bot` node uses the `user_id` to fetch any existing memories for that user from the `Memory Storage` layer.
+
+These fetched memories are added to the system prompt of the chatbot to personalize the responses.
+
+The `schedule_memories` node is run after the `bot` node. 
+
+It is responsible for scheduling long-term memory creation based upon the chatbot's updated interaction with the user.
+
+It uses the LangGraph SDK to call the `memory_graph`, suppling the chatbot's interaction with the user.
+
+### Memory Graph
+
+The `memory_graph` graph, defined in [graph.py](./src/memory_graph/graph.py) incoperates two different concepts: 
+
+(1) We can define a schema for each of the types of memories we want to store. 
+
+(2) We can update these memories in different ways using the [`trustcall` library](https://github.com/hinthornw/trustcall). 
+
+The schema for each memory type is defined in [configuration.py](./src/memory_graph/configuration.py). 
+
+The default schemas are `User` and `Note`. 
+
+The `User` schema is used to store a single profile for a user, such as their name, age, and interests. 
+
+We'll store a single JSON schema that can be updated with new information as the conversation progresses.
+
+The `Note` schema is used to store specific events or notes about the user's interactions with the chatbot. 
+
+We'll store a list of JSON schemas that can be updated or added to as the conversation processes.
+
+The [`trustcall` library](https://github.com/hinthornw/trustcall) handles writing and updating either of these schemas. 
+
+![Memory types](./static/memory_types.png)
+
+The `memory_graph` save both types of memories to the `Memory Storage` layer, namespaced by the `user_id` and the schema name.
+
+We can see the graph here in the LangGraph Studio, with a branch for each memory schemas.
+
+![Memory Diagram](./static/memory_graph.png)
+
+## Philosophy
+
+### Separation of Concerns
+
+This separation of concerns between the application logic (chatbot) and the memory processing (the memory graph) provides advantages:
+
+(1) minimal overhead by removing memory creation logic from the hotpath of the application (e.g., no latency cost for memory creation)
+
+(2) memory creation logic is handled in a background job, separate from the chatbot, with scheduling to avoid duplicate processing
+
+(3) memory graph can be updated and / or hosted (as a service) independently of the application (chatbot)
 
 ![Interaction Pattern](./static/memory_interactions.png)
 
-The service waits for a pre-determined interval before it considers the thread "complete". If the user queries a second time within that interval, the memory run is cancelled to avoid duplicate processing of a thread.
+### Scheduling
+
+Scheduling is handled by the LangGraph API's `after_seconds` parameter. 
+
+This is the intuition: we want to wait until a thread is "complete" before we write memories to the storage layer. 
+
+We don't know when a chat will end.
+
+So, we wait a pre-determined interval before invoking the memory graph to memories to the storage layer.
+
+If the chatbot makes a call second time within that interval, the memory run is cancelled to avoid duplicate processing of a thread.
+
+This cartoon highlights the concept: requests to call the `memory_graph` are delayed for some period of time. 
+
+If any newer requests come in, the initial request is cancelled to avoid duplicate processing the same interaction. 
+
+![DeBounce](./static/scheduling.png)
 
 ## How to evaluate
 

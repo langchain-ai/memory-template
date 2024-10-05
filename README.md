@@ -206,7 +206,7 @@ All these memories need to go somewhere reliable. All LangGraph deployments come
 
 You can learn more about Storage in LangGraph [here](https://langchain-ai.github.io/langgraph/how-tos/memory/shared-state/).
 
-In our case, we are saving all memories namespaced by `user_id` and by the memory scheam you provide. That way you can easily search for memories for a given user and of a particualr type. This diagram shows how these pieces fit together:
+In our case, we are saving all memories namespaced by `user_id` and by the memory schema you provide. That way you can easily search for memories for a given user and of a particualr type. This diagram shows how these pieces fit together:
 
 ![Memory types](./static/memory_types.png)
 

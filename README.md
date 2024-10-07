@@ -174,7 +174,7 @@ In the previous section we showed how the memory schemas define how memories sho
 
 If no memory has been saved yet, `trust_call` prompts the model to populate the document. It additionally does schema validation to ensure the output is correct.
 
-If a memory already exists, you _could_ simply prompt the model to re-geerate the schema anew on each round. Doing so, however, leads to frequent information loss, especially on complicated schemas, since LLMs are wont to forget or omit previously stored details when regenerating information from scratch if it doesn't happen to be immediately relevant.
+If a memory already exists, you _could_ simply prompt the model to re-generate the schema anew on each round. Doing so, however, leads to frequent information loss, especially on complicated schemas, since LLMs are wont to forget or omit previously stored details when regenerating information from scratch if it doesn't happen to be immediately relevant.
 
 To avoid memory loss, your memory schema is placed in the system prompt but **not** made available as a tool for the model to call. Instead, the LLM is provided a `PatchDoc` tool. This forces the model to generate a chain-of-thought of 0 or more planned edits, along with patches to individual JSON paths to be modified.
 

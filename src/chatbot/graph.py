@@ -55,8 +55,9 @@ async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
         # that run will be canceled, and a **new** one will be scheduled once
         # this node is executed again.
         thread_id=config["configurable"]["thread_id"],
-        # Rollback & cancel any scheduled runs for the target thread
-        # that haven't completed
+        # This memory-formation run will be enqueued and run later
+        # If a new run comes in before it is scheduled, it will be cancelled, 
+        # then when this node is executed again, a *new* run will be scheduled
         multitask_strategy="enqueue",
         # This lets us "debounce" repeated requests to the memory graph
         # if the user is actively engaging in a conversation. This saves us $$ and

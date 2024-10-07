@@ -31,7 +31,7 @@ async def handle_patch_memory(
 
     # Fetch existing memories from the store for this (patch) memory schema
     existing_item = await store.aget(namespace, "memory")
-    existing = {existing_item.key: existing_item.value} if existing_item else None
+    existing = {state.function_name: existing_item.value} if existing_item else None
 
     # Get the configuration for this memory schema (identified by function_name)
     memory_config = next(

@@ -1,6 +1,5 @@
 """Example chatbot that incorporates user memories."""
 
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -48,24 +47,20 @@ async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
     """Prompt the bot to respond to the user, incorporating memories (if provided)."""
     configurable = ChatConfigurable.from_runnable_config(config)
     memory_client = get_client()
-    mem_thread_id = str(
-        uuid.uuid5(
-            uuid.NAMESPACE_URL,
-            configurable.mem_assistant_id + config["configurable"]["thread_id"],
-        )
-    )
-    await memory_client.threads.create(thread_id=mem_thread_id, if_exists="do_nothing")
     await memory_client.runs.create(
-        # Generate a thread so we can run the memory service on a separate
-        # but consistent thread. This lets us cancel scheduled runs if
-        # a new message arrives to our chatbot before the memory service
-        # begins processing.
-        thread_id=mem_thread_id,
+        # We enqueue the memory formation process on the same thread.
+        # This means that IF this thread doesn't receive more messages before `after_seconds`,
+        # it will read from the shared state and extract memories for us.
+        # If a new request comes in for this thread before the scheduled run is executed,
+        # that run will be canceled, and a **new** one will be scheduled once
+        # this node is executed again.
+        thread_id=config["configurable"]["thread_id"],
         # Rollback & cancel any scheduled runs for the target thread
         # that haven't completed
-        multitask_strategy="rollback",
+        multitask_strategy="enqueue",
         # This lets us "debounce" repeated requests to the memory graph
-        # if the user is actively engaging in a conversation
+        # if the user is actively engaging in a conversation. This saves us $$ and
+        # can help reduce the occurence of duplicate memories.
         after_seconds=configurable.delay_seconds,
         # Specify the graph and/or graph configuration to handle the memory processing
         assistant_id=configurable.mem_assistant_id,

@@ -95,7 +95,7 @@ async def test_patch_memory_stored():
 class Relationship(BaseModel):
     """A relationship memory type for insertion.
 
-    Call for each distinct indivual the user interacts with. Don't forget to document each new relationship with a new entry.
+    Call for each distinct individual the user interacts with. Don't forget to document each new relationship with a new entry.
     """
 
     name: str = Field(description="The legal name of the person.")

@@ -27,11 +27,11 @@ async def handle_patch_memory(
     configurable = configuration.Configuration.from_runnable_config(config)
 
     # Namespace for memory events, where function_name is the name of the memory schema
-    namespace = (configurable.user_id, "user_states", state.function_name)
+    namespace = (configurable.user_id, "user_states")
 
     # Fetch existing memories from the store for this (patch) memory schema
-    existing_item = await store.aget(namespace, "memory")
-    existing = {existing_item.key: existing_item.value} if existing_item else None
+    existing_item = await store.aget(namespace, state.function_name)
+    existing = {state.function_name: existing_item.value} if existing_item else None
 
     # Get the configuration for this memory schema (identified by function_name)
     memory_config = next(
@@ -66,8 +66,7 @@ async def handle_patch_memory(
     result = await extractor.ainvoke(inputs, config)
     extracted = result["responses"][0].model_dump(mode="json")
     # Save to storage
-    await store.aput(namespace, "memory", extracted)
-    return {"messages": []}
+    await store.aput(namespace, state.function_name, extracted)
 
 
 async def handle_insertion_memory(
@@ -138,7 +137,6 @@ async def handle_insertion_memory(
             for r, rmeta in zip(extracted["responses"], extracted["response_metadata"])
         )
     )
-    return {"messages": []}
 
 
 # Create the graph and all nodes

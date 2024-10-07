@@ -55,20 +55,19 @@ async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
         # that run will be canceled, and a **new** one will be scheduled once
         # this node is executed again.
         thread_id=config["configurable"]["thread_id"],
-        # Rollback & cancel any scheduled runs for the target thread
-        # that haven't completed
+        # This memory-formation run will be enqueued and run later
+        # If a new run comes in before it is scheduled, it will be cancelled,
+        # then when this node is executed again, a *new* run will be scheduled
         multitask_strategy="enqueue",
         # This lets us "debounce" repeated requests to the memory graph
         # if the user is actively engaging in a conversation. This saves us $$ and
-        # can help reduce the occurence of duplicate memories.
+        # can help reduce the occurrence of duplicate memories.
         after_seconds=configurable.delay_seconds,
         # Specify the graph and/or graph configuration to handle the memory processing
         assistant_id=configurable.mem_assistant_id,
-        input={
-            # the service dedupes messages by ID, so we can send the full convo each time
-            # if we want
-            "messages": state.messages,
-        },
+        # the memory service is running in the same deployment & thread, meaning
+        # it shares state with this chat bot. No content needs to be sent
+        input={"messages": []},
         config={
             "configurable": {
                 # Ensure the memory service knows where to save the extracted memories

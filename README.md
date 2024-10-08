@@ -257,7 +257,7 @@ In our case, we are saving all memories namespaced by `user_id` and by the memor
 
 ![Memory types](./static/memory_types.png)
 
-### Calling the memory service
+### Calling the memory ervice
 
 The studio uses the LangGraph API as its backend and exposes graph endpoints for all the graphs defied in your `langgraph.json` file.
 
@@ -304,35 +304,55 @@ We use [LangSmith's @unit decorator](https://docs.smith.langchain.com/how_to_gui
 
 Customize memory memory_types: This memory graph supports two different `update_modes` that dictate how memories will be managed:
 
-1. Patch Schema: This allows updating a single, continuous memory schema with new information from the conversation. You can customize the schema for this type by defining the JSON schema when initializing the memory schema. Our default example is repeated below:
+1. Patch Schema: This allows updating a single, continuous memory schema with new information from the conversation. You can customize the schema for this type by defining the JSON schema when initializing the memory schema. For instance, try changing the "User" schema to add a new field `favorite_locations`:
 
 ```json
-{
-  "name": "User",
-  "description": "Update this document to maintain up-to-date information about the user in the conversation.",
-  "update_mode": "patch",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "user_name": {
-        "type": "string",
-        "description": "The user's preferred name"
-      },
-      "age": {
-        "type": "integer",
-        "description": "The user's age"
-      },
-      "interests": {
-        "type": "array",
-        "items": {
-          "type": "string"
+[
+  {
+    "name": "User",
+    "description": "Update this document to maintain up-to-date information about the user in the conversation.",
+    "update_mode": "patch",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "user_name": {
+          "type": "string",
+          "description": "The user's preferred name"
         },
-        "description": "A list of the user's interests"
+        "age": {
+          "type": "integer",
+          "description": "The user's age"
+        },
+        "interests": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of the user's interests"
+        },
+        "home": {
+          "type": "string",
+          "description": "Description of the user's home town/neighborhood, etc."
+        },
+        "occupation": {
+          "type": "string",
+          "description": "The user's current occupation or profession"
+        },
+        "conversation_preferences": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of the user's preferred conversation styles, pronouns, topics they want to avoid, etc."
+        },
+        "favorite_locations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of the user's favorite places or locations"
+        }
       }
     }
   }
-}
+]
 ```
+
+If you paste the above in the "Memory Types" configuration in the Studio UI and continue the chat, new memories will be extracted to follow the updated schema.
 
 You can modify existing schemas or provide **new** ones via configuration to customize the memory structures extracted by the memory graph. Here's how it works:
 
@@ -345,29 +365,37 @@ You can modify existing schemas or provide **new** ones via configuration to cus
   - It will be saved under a separate namespace.
   - This ensures no collisions with existing memories.
 
-2. Insertion Schema: This allows inserting individual "event" memories, such as key pieces of information or summaries from the conversation. You can define custom memory_types for these event memories by providing a JSON schema when initializing the InsertionMemorySchema. For example:
+2. Insertion Schema: This allows inserting individual "event" memories, such as key pieces of information or summaries from the conversation. You can define custom memory_types for these event memories by providing a JSON schema when initializing the InsertionMemorySchema. Let's add a new insertion schema to track each "Person" the user mentions:
 
 ```json
-{
-  "name": "Note",
-  "description": "Save notable memories the user has shared with you for later recall.",
-  "update_mode": "insert",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "context": {
-        "type": "string",
-        "description": "The situation or circumstance in which the memory occurred that inform when it would be useful to recall this."
+[
+  {
+    "name": "Person",
+    "description": "Track general information about people the user knows.",
+    "update_mode": "insert",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the person."
+        },
+        "relationship": {
+          "type": "string",
+          "description": "The relationship between the user and this person (e.g., friend, family, colleague)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "General notes about this person, including how they met, user's feelings, and recent interactions."
+        }
       },
-      "content": {
-        "type": "string",
-        "description": "The specific information, preference, or event being remembered."
-      }
-    },
-    "required": ["context", "content"]
+      "required": ["name"]
+    }
   }
-}
+]
 ```
+
+Since you've made a newly named memory schema, the memory service will save it within a new namespace and **not** overwrite any previous ones.
 
 You can modify schemas with an insertion update_mode in the same way as schemas with a patch update_mode. Define the structure, name it descriptively, set "update_mode" to "insert", and include a concise description. Parameters should have appropriate data types and descriptions. Consider adding constraints for data quality.
 

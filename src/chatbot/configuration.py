@@ -20,6 +20,8 @@ class ChatConfigurable:
     model: str = "anthropic/claude-3-5-sonnet-20240620"
     delay_seconds: int = 10  # For debouncing memory creation
     system_prompt: str = SYSTEM_PROMPT
+    memory_types: Optional[list[dict]] = None
+    """The memory_types for the memory assistant."""
 
     @classmethod
     def from_runnable_config(

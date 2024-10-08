@@ -72,6 +72,7 @@ async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
             "configurable": {
                 # Ensure the memory service knows where to save the extracted memories
                 "user_id": configurable.user_id,
+                "memory_types": configurable.memory_types,
             },
         },
     )

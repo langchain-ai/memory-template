@@ -134,7 +134,7 @@ The first schema is the `User` profile schema, copied below:
 
 The schema has a name and description, as well as JSON schema parameters that are all passed to an LLM. The LLM infers the values for the schema based on the conversations you send to the memory service.
 
-The schema also has an `update_mode` parameter that defines **how** the service should update its memory when new information is provided. The **patch** update_mode instructs the graph that we should always have a single JSON object to represent this user. When new information is provided, the model can generate "patches", or small updates to extend, delete, or replace content in the current memory document. This type of `update_mode` is useful if you want strict visibility into a user's representation at any given point or if you want to let the end user directly view and update their own representation for the bot. By defining these specific parameters, we are decideing that this (and only this) information is relevant to track and excluding other information (like "relationships" or "religion", etc.) from being tracked. It's an easy way for us to bias the service into focusing on what we think is important for our specific bot.
+The schema also has an `update_mode` parameter that defines **how** the service should update its memory when new information is provided. The **patch** update_mode instructs the graph that we should always have a single JSON object to represent this user. When new information is provided, the model can generate "patches", or small updates to extend, delete, or replace content in the current memory document. This type of `update_mode` is useful if you want strict visibility into a user's representation at any given point or if you want to let the end user directly view and update their own representation for the bot. By defining these specific parameters, we are deciding that this (and only this) information is relevant to track and excluding other information (like "relationships" or "religion", etc.) from being tracked. It's an easy way for us to bias the service into focusing on what we think is important for our specific bot.
 
 The second memory schema we provide is the **Note** schema, shown below:
 
@@ -160,7 +160,7 @@ The second memory schema we provide is the **Note** schema, shown below:
 }
 ```
 
-Just like the previous example, this schema has a name, description, and parameters. Notic that the `update_mode` this time is "insert". This instructs the LLM in the memory service to **insert new memories to the list or update existing ones**. The number of memories for this `update_mode` is **unbound** since the model can continue to store new notes any time something interesting shows up in the conversation. Each time the service runs, the model can generate multiple schemas, some to update or re-contextualize existing memories, some to document new information. Note taht these memory schemas tend to have fewer parameters and are usually most effective if you have a field to let the service provide contextual information (so that if your bot fetches this memory, it isn't taken out-of-context).
+Just like the previous example, this schema has a name, description, and parameters. Notic that the `update_mode` this time is "insert". This instructs the LLM in the memory service to **insert new memories to the list or update existing ones**. The number of memories for this `update_mode` is **unbound** since the model can continue to store new notes any time something interesting shows up in the conversation. Each time the service runs, the model can generate multiple schemas, some to update or re-contextualize existing memories, some to document new information. Note that these memory schemas tend to have fewer parameters and are usually most effective if you have a field to let the service provide contextual information (so that if your bot fetches this memory, it isn't taken out-of-context).
 
 To wrap up this section: `memory_schemas` provide a name, description, and parameters that the LLM populates to store in the database. The `update_mode` controls whether new information should always overwrite an existing memory or whether it should insert new memories (while optionally updating existing ones).
 
@@ -174,7 +174,7 @@ In the previous section we showed how the memory schemas define how memories sho
 
 If no memory has been saved yet, `trust_call` prompts the model to populate the document. It additionally does schema validation to ensure the output is correct.
 
-If a memory already exists, you _could_ simply prompt the model to re-geerate the schema anew on each round. Doing so, however, leads to frequent information loss, especially on complicated schemas, since LLMs are wont to forget or omit previously stored details when regenerating information from scratch if it doesn't happen to be immediately relevant.
+If a memory already exists, you _could_ simply prompt the model to re-generate the schema anew on each round. Doing so, however, leads to frequent information loss, especially on complicated schemas, since LLMs are won't to forget or omit previously stored details when regenerating information from scratch if it doesn't happen to be immediately relevant.
 
 To avoid memory loss, your memory schema is placed in the system prompt but **not** made available as a tool for the model to call. Instead, the LLM is provided a `PatchDoc` tool. This forces the model to generate a chain-of-thought of 0 or more planned edits, along with patches to individual JSON paths to be modified.
 
@@ -182,9 +182,9 @@ Applying updates as JSON patches helps minimize information loss, save token cos
 
 #### insert
 
-If no memories have been saved yet, the model is given a single tool (the schema from your memory config). It is prompted to use multi-tool callint to generate 0 or more instances of your schema depending on the conversation context.
+If no memories have been saved yet, the model is given a single tool (the schema from your memory config). It is prompted to use multi-tool calling to generate 0 or more instances of your schema depending on the conversation context.
 
-If memories exist for this user, the memory graph searches for existing ones to provide additional context. These are put in the system promt along with two two tools: your memory schema as well as a "PatchDoc" tool. The LLM is prompted to invoke whichever tools are appropriate given the conversational context. The LLM can call the PatchDoc tool to update existing memories in case they are no longer correct or require additional context. It can also call your memory schema tool any number of times to save new memories or notes. Either way, it calls these tools in a single generation step, and the graph upserts the results to the memory store.
+If memories exist for this user, the memory graph searches for existing ones to provide additional context. These are put in the system prompt along with two two tools: your memory schema as well as a "PatchDoc" tool. The LLM is prompted to invoke whichever tools are appropriate given the conversational context. The LLM can call the PatchDoc tool to update existing memories in case they are no longer correct or require additional context. It can also call your memory schema tool any number of times to save new memories or notes. Either way, it calls these tools in a single generation step, and the graph upserts the results to the memory store.
 
 ![Memory Diagram](./static/memory_graph.png)
 
@@ -206,7 +206,8 @@ All these memories need to go somewhere reliable. All LangGraph deployments come
 
 You can learn more about Storage in LangGraph [here](https://langchain-ai.github.io/langgraph/how-tos/memory/shared-state/).
 
-In our case, we are saving all memories namespaced by `user_id` and by the memory schema you provide. That way you can easily search for memories for a given user and of a particualr type. This diagram shows how these pieces fit together:
+In our case, we are saving all memories namespaced by `user_id` and by the memory schema you provide. That way you can easily search for memories for a given user and of a particular type. This diagram shows how these pieces fit together:
+
 
 ![Memory types](./static/memory_types.png)
 

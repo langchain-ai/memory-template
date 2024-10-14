@@ -257,7 +257,7 @@ In our case, we are saving all memories namespaced by `user_id` and by the memor
 
 ![Memory types](./static/memory_types.png)
 
-### Calling the memory ervice
+### Calling the memory service
 
 The studio uses the LangGraph API as its backend and exposes graph endpoints for all the graphs defied in your `langgraph.json` file.
 

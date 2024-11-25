@@ -52,7 +52,7 @@ async def handle_patch_memory(
                 "parameters": memory_config.parameters,
             }
         ],
-        tool_choice=memory_config.name,
+        tool_choice="any",
     )
 
     # Prepare the messages

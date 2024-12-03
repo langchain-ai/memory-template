@@ -13,7 +13,6 @@ from typing_extensions import Annotated
 from chatbot.configuration import ChatConfigurable
 from chatbot.utils import format_memories, init_model
 
-
 @dataclass
 class ChatState:
     """The state of the chatbot."""
@@ -29,7 +28,8 @@ async def bot(
     namespace = (configurable.user_id,)
     # This lists ALL user memories in the provided namespace (up to the `limit`)
     # you can also filter by content.
-    items = await store.asearch(namespace)
+    query = "\n".join(str(message.content) for message in state.messages)
+    items = await store.asearch(namespace, query=query, limit=10)
 
     model = init_model(configurable.model)
     prompt = configurable.system_prompt.format(

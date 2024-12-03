@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 from chatbot.configuration import ChatConfigurable
 from chatbot.utils import format_memories, init_model
 
+
 @dataclass
 class ChatState:
     """The state of the chatbot."""

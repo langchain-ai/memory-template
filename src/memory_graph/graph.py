@@ -80,7 +80,8 @@ async def handle_insertion_memory(
     namespace = (configurable.user_id, "events", state.function_name)
 
     # Fetch existing memories from the store (5 most recent ones) for the this (insert) memory schema
-    existing_items = await store.asearch(namespace, limit=5)
+    query = "\n".join(str(message.content) for message in state.messages)[-3000:]
+    existing_items = await store.asearch(namespace, query=query, limit=5)
 
     # Get the configuration for this memory schema (identified by function_name)
     memory_config = next(

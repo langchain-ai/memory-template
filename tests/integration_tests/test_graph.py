@@ -67,7 +67,7 @@ async def test_patch_memory_stored():
     await graph.ainvoke(
         {"messages": [("user", "My name is Bob. I like fun things")]}, config
     )
-    namespace = (user_id, "user_states", "User")
+    namespace = (user_id, "user_states")
     memories = mem_store.search(namespace)
     ls.expect(len(memories)).to_equal(1)
     mem = memories[0]

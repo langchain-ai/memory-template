@@ -2,9 +2,9 @@
 
 import os
 from dataclasses import dataclass, field, fields
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
-from langchain_core.runnables import RunnableConfig
+from langgraph.config import get_config
 from typing_extensions import Annotated
 
 
@@ -44,7 +44,7 @@ class Configuration:
     user_id: str = "default"
     """The ID of the user to remember in the conversation."""
     model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="anthropic/claude-3-5-sonnet-20240620",
+        default="anthropic:claude-3-5-sonnet-latest",
         metadata={
             "description": "The name of the language model to use for the agent. "
             "Should be in the form: provider/model-name."
@@ -55,14 +55,20 @@ class Configuration:
     memory_types: list[MemoryConfig] = field(default_factory=list)
     """The memory_types for the memory assistant."""
 
+    max_extraction_steps: int = 1
+    """The maximum number of steps to take when extracting memories."""
+
     @classmethod
-    def from_runnable_config(
-        cls, config: Optional[RunnableConfig] = None
-    ) -> "Configuration":
+    def from_context(cls) -> "Configuration":
         """Create a Configuration instance from a RunnableConfig."""
-        configurable = (
-            config["configurable"] if config and "configurable" in config else {}
-        )
+        try:
+            config = get_config()
+            configurable = (
+                config["configurable"] if config and "configurable" in config else {}
+            )
+        except RuntimeError:
+            configurable = {}
+
         values: dict[str, Any] = {
             f.name: os.environ.get(f.name.upper(), configurable.get(f.name))
             for f in fields(cls)

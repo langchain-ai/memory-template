@@ -1,17 +1,18 @@
 """Example chatbot that incorporates user memories."""
 
+import datetime
 from dataclasses import dataclass
-from datetime import datetime, timezone
 
+from langchain.chat_models import init_chat_model
 from langchain_core.runnables import RunnableConfig
+from langgraph.config import get_store
 from langgraph.graph import StateGraph
 from langgraph.graph.message import Messages, add_messages
-from langgraph.store.base import BaseStore
 from langgraph_sdk import get_client
 from typing_extensions import Annotated
 
 from chatbot.configuration import ChatConfigurable
-from chatbot.utils import format_memories, init_model
+from chatbot.utils import format_memories
 
 
 @dataclass
@@ -21,24 +22,26 @@ class ChatState:
     messages: Annotated[list[Messages], add_messages]
 
 
-async def bot(
-    state: ChatState, config: RunnableConfig, store: BaseStore
-) -> dict[str, list[Messages]]:
+llm = init_chat_model()
+
+
+async def bot(state: ChatState) -> dict[str, list[Messages]]:
     """Prompt the bot to resopnd to the user, incorporating memories (if provided)."""
-    configurable = ChatConfigurable.from_runnable_config(config)
+    configurable = ChatConfigurable.from_context()
     namespace = (configurable.user_id,)
+    store = get_store()
     # This lists ALL user memories in the provided namespace (up to the `limit`)
     # you can also filter by content.
     query = "\n".join(str(message.content) for message in state.messages)
     items = await store.asearch(namespace, query=query, limit=10)
 
-    model = init_model(configurable.model)
     prompt = configurable.system_prompt.format(
         user_info=format_memories(items),
-        time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        time=datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
     )
-    m = await model.ainvoke(
+    m = await llm.ainvoke(
         [{"role": "system", "content": prompt}, *state.messages],
+        config={"configurable": {"model": configurable.model}},
     )
 
     return {"messages": [m]}
@@ -46,7 +49,7 @@ async def bot(
 
 async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
     """Prompt the bot to respond to the user, incorporating memories (if provided)."""
-    configurable = ChatConfigurable.from_runnable_config(config)
+    configurable = ChatConfigurable.from_context()
     memory_client = get_client()
     await memory_client.runs.create(
         # We enqueue the memory formation process on the same thread.
@@ -66,9 +69,7 @@ async def schedule_memories(state: ChatState, config: RunnableConfig) -> None:
         after_seconds=configurable.delay_seconds,
         # Specify the graph and/or graph configuration to handle the memory processing
         assistant_id=configurable.mem_assistant_id,
-        # the memory service is running in the same deployment & thread, meaning
-        # it shares state with this chat bot. No content needs to be sent
-        input={"messages": []},
+        input={"messages": state.messages},
         config={
             "configurable": {
                 # Ensure the memory service knows where to save the extracted memories

@@ -7,21 +7,18 @@ authors = [
 ]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
-    "langgraph>=0.2.53,<0.3.0",
+    "langgraph>=0.3",
     "langgraph-checkpoint>=2.0.8",
     # Optional (for selecting different models)
-    "langchain-openai>=0.2.1",
-    "langchain-anthropic>=0.2.1",
+    "langchain-openai>=0.3",
+    "langchain-anthropic>=0.3",
     "langchain>=0.3.8",
     "python-dotenv>=1.0.1",
     "langgraph-sdk>=0.1.40",
-    "trustcall>=0.0.21",
+    "langmem>=0.0.25",
 ]
-
-[project.optional-dependencies]
-dev = ["mypy>=1.11.1", "ruff>=0.6.1", "pytest-asyncio"]
 
 [build-system]
 requires = ["setuptools>=73.0.0", "wheel"]
@@ -60,4 +57,12 @@ convention = "google"
 
 [tool.mypy]
 ignore_errors = true
+
+[dependency-groups]
+dev = [
+    "langgraph-cli[inmem]>=0.2.10",
+    "mypy>=1.15.0",
+    "pytest-asyncio>=0.26.0",
+    "ruff>=0.11.2",
+]
 

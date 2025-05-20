@@ -28,7 +28,7 @@ llm = init_chat_model()
 async def bot(state: ChatState) -> dict[str, list[Messages]]:
     """Prompt the bot to resopnd to the user, incorporating memories (if provided)."""
     configurable = ChatConfigurable.from_context()
-    namespace = (configurable.user_id,)
+    namespace = ("memories", configurable.user_id,)
     store = get_store()
     # This lists ALL user memories in the provided namespace (up to the `limit`)
     # you can also filter by content.

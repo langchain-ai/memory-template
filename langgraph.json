@@ -1,4 +1,5 @@
 {
+    "$schema": "https://langgra.ph/schema.json",
     "dockerfile_lines": [],
     "graphs": {
         "chatbot": "./src/chatbot/graph.py:graph",

@@ -1,11 +1,9 @@
 """Define utility functions for your graph."""
 
-from typing import Optional
-
 from langgraph.store.base import Item
 
 
-def format_memories(memories: Optional[list[Item]]) -> str:
+def format_memories(memories: list[Item] | None) -> str:
     """Format the user's memories."""
     if not memories:
         return ""

@@ -2,7 +2,7 @@
 
 import os
 from dataclasses import dataclass, fields
-from typing import Any, Optional
+from typing import Any
 
 from langgraph.config import get_config
 
@@ -20,7 +20,7 @@ class ChatConfigurable:
     model: str = "anthropic:claude-3-5-sonnet-20240620"
     delay_seconds: int = 3  # For debouncing memory creation
     system_prompt: str = SYSTEM_PROMPT
-    memory_types: Optional[list[dict]] = None
+    memory_types: list[dict] | None = None
     """The memory_types for the memory assistant."""
 
     @classmethod
